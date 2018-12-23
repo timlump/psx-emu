@@ -1,6 +1,7 @@
 #include "Cpu.hpp"
+#include <stdio.h>
 
-enum class opcode {
+enum opcode : unsigned char {
 	// alu instructions
 	op_add = 0b100000,
 	op_addu = 0b100001,
@@ -61,19 +62,70 @@ enum class opcode {
 	trap = 0b011010
 };
 
+enum instruction_format : unsigned char {
+	register_format = 0b000000, // 000000 (6) src1 (5) src2 (5) dest (5) shift (5) function (6)
+	jump_format = 0b000100, // 0001xx (6) target offset (26) 
+	coprocessor_format = 0b010000, // 0100xx (6) format (5) src1 (5) src2 (5) dest (5) function (6)
+	immediate_format = 0b111111 // opcode (6) source (5) dest (5) immediate (16)
+};
+
 void Cpu::run()
 {
-
+	fetch();
+	decode();
+	execute();
+	memAccess();
+	writeBack();
 }
 
 void Cpu::fetch()
 {
-
+	b0 = ram->raw[pc];
+	b1 = ram->raw[pc + 1];
+	b2 = ram->raw[pc + 2];
+	b3 = ram->raw[pc + 3];
 }
 
 void Cpu::decode()
 {
+	unsigned char opcode = b0 >> 2;
 
+	unsigned int instruction = b0 << 26 | b1 << 16 | b2 << 8 | b3;
+
+	switch (opcode & 0b111100)
+	{
+	case instruction_format::register_format:
+		operand_function = instruction & 0b00111111;
+		operand_shift = instruction >> 6 & 0b00011111;
+		operand_dest = instruction >> 11 & 0b00011111;
+		operand_src2 = instruction >> 16 & 0b00011111;
+		operand_src1 = instruction >> 21 & 0b00011111;
+		break;
+
+	case instruction_format::jump_format:
+		operand_offset = instruction & 0x03ffffff; 
+		break;
+
+	case instruction_format::coprocessor_format:
+		operand_function = instruction & 0b00111111;
+		operand_dest = instruction >> 6 & 0b00011111;
+		operand_src2 = instruction >> 11 & 0b00011111;
+		operand_src1 = instruction >> 16 & 0b00011111;
+		operand_format = instruction >> 21 & 0b00011111;
+		break;
+
+	default:
+		operand_immediate = instruction;
+		operand_dest = instruction >> 16 & 0b00011111;
+		operand_src1 = instruction >> 21 & 0b00011111;
+		break;
+	}
+
+	switch (opcode)
+	{
+	default:
+		fprintf(stderr, "unrecognised opcode\n");
+	}
 }
 
 void Cpu::execute()

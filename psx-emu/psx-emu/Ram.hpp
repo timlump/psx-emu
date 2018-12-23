@@ -6,6 +6,5 @@ class Ram
 {
 public:
 	Ram(const char * bios);
-private: 
-	 unsigned char memory[RAM_SIZE];
+	unsigned char raw[RAM_SIZE];
 };

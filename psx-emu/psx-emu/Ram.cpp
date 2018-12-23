@@ -5,7 +5,7 @@
 
 Ram::Ram(const char * bios)
 { 
-	memset(memory, 0, RAM_SIZE);
+	memset(raw, 0, RAM_SIZE);
 
 	FILE * file = fopen(bios, "r");
 
@@ -15,7 +15,7 @@ Ram::Ram(const char * bios)
 		unsigned int index = 0;
 		while (feof(file) == false)
 		{
-			memory[index] = fgetc(file);
+			raw[index] = fgetc(file);
 		}
 		fprintf(stdout, "Loaded bios\n");
 
