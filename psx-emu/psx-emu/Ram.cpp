@@ -7,17 +7,17 @@ Ram::Ram(const char * bios)
 { 
 	memset(raw, 0, RAM_SIZE);
 
-	FILE * file = fopen(bios, "r");
+	FILE * file = fopen(bios, "rb");
 
 	if (file)
 	{
-		fprintf(stdout, "Loading bios\n");
 		unsigned int index = 0;
 		while (feof(file) == false)
 		{
 			raw[index] = fgetc(file);
+			index++;
 		}
-		fprintf(stdout, "Loaded bios\n");
+		fprintf(stdout, "Loaded bios - pc end: %d \n", index-1);
 
 		fclose(file);
 	}

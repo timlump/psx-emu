@@ -1,30 +1,31 @@
 #include "Cpu.hpp"
 #include <stdio.h>
+#include <assert.h>
 
 enum opcode : unsigned char {
 	// alu instructions
-	op_add = 0b100000,
+	op_add =  0b100000,
 	op_addu = 0b100001,
 	op_addi = 0b001000,
-	op_addiu = 0b001001,
-	op_and = 0b100100,
+	op_addiu =0b001001,
+	op_and =  0b100100,
 	op_andi = 0b001100,
-	op_div = 0b011010,
+	op_div =  0b011010,
 	op_divu = 0b011011,
 	op_mult = 0b011000,
-	op_multu = 0b011001,
-	op_nor = 0b100111,
-	op_or = 0b100101,
-	op_ori = 0b100101,
-	op_sll = 0b000000,
+	op_multu =0b011001,
+	op_nor =  0b100111,
+	op_or =   0b100101,
+	op_ori =  0b001101,
+	op_sll =  0b000000,
 	op_sllv = 0b000100,
-	op_sra = 0b000011,
+	op_sra =  0b000011,
 	op_srav = 0b000111,
-	op_srl = 0b000010,
+	op_srl =  0b000010,
 	op_srlv = 0b000110,
-	op_sub = 0b100010,
+	op_sub =  0b100010,
 	op_subu = 0b100011,
-	op_xor = 0b100110,
+	op_xor =  0b100110,
 	op_xori = 0b001110,
 	// constant manipulating instructions
 	op_lhi = 0b011001,
@@ -62,24 +63,20 @@ enum opcode : unsigned char {
 	trap = 0b011010
 };
 
-enum instruction_format : unsigned char {
-	register_format = 0b000000, // 000000 (6) src1 (5) src2 (5) dest (5) shift (5) function (6)
-	jump_format = 0b000100, // 0001xx (6) target offset (26) 
-	coprocessor_format = 0b010000, // 0100xx (6) format (5) src1 (5) src2 (5) dest (5) function (6)
-	immediate_format = 0b111111 // opcode (6) source (5) dest (5) immediate (16)
-};
-
-void Cpu::run()
+void Cpu::run() 
 {
 	fetch();
 	decode();
-	execute();
+ 	execute();
 	memAccess();
 	writeBack();
+
+	getchar();
 }
 
 void Cpu::fetch()
 {
+	fprintf(stdout, "pc: %d\n", pc);
 	b0 = ram->raw[pc];
 	b1 = ram->raw[pc + 1];
 	b2 = ram->raw[pc + 2];
@@ -88,49 +85,89 @@ void Cpu::fetch()
 
 void Cpu::decode()
 {
-	unsigned char opcode = b0 >> 2;
-
 	unsigned int instruction = b0 << 26 | b1 << 16 | b2 << 8 | b3;
+	operand.func = b0 >> 2;
 
-	switch (opcode & 0b111100)
+	fprintf(stdout, "instruction %u \n", instruction);
+
+	// first 6 bits identify the instruction format
+	switch (operand.func & 0b111110)
 	{
 	case instruction_format::register_format:
-		operand_function = instruction & 0b00111111;
-		operand_shift = instruction >> 6 & 0b00011111;
-		operand_dest = instruction >> 11 & 0b00011111;
-		operand_src2 = instruction >> 16 & 0b00011111;
-		operand_src1 = instruction >> 21 & 0b00011111;
+		operand.func = instruction & 0b00111111;
+		operand.shift = instruction >> 6 & 0b00011111;
+		operand.dest = instruction >> 11 & 0b00011111;
+		operand.src2 = instruction >> 16 & 0b00011111;
+		operand.src1 = instruction >> 21 & 0b00011111;
+		operand.instruction_format = instruction_format::register_format; 
+		fprintf(stdout, "register format - func: %d\n", operand.func );
 		break;
 
 	case instruction_format::jump_format:
-		operand_offset = instruction & 0x03ffffff; 
+		operand.offset = instruction & 0x03ffffff;
+		operand.instruction_format = instruction_format::jump_format; 
+		fprintf(stdout, "jump format offset: %d\n", operand.offset); 
 		break;
 
 	case instruction_format::coprocessor_format:
-		operand_function = instruction & 0b00111111;
-		operand_dest = instruction >> 6 & 0b00011111;
-		operand_src2 = instruction >> 11 & 0b00011111;
-		operand_src1 = instruction >> 16 & 0b00011111;
-		operand_format = instruction >> 21 & 0b00011111;
+		operand.func = instruction & 0b00111111;
+		operand.dest = instruction >> 6 & 0b00011111;
+		operand.src2 = instruction >> 11 & 0b00011111;
+		operand.src1 = instruction >> 16 & 0b00011111;
+		operand.format = instruction >> 21 & 0b00011111;
+		operand.instruction_format = instruction_format::coprocessor_format;
+		fprintf(stdout, "coprocessor format\n");
 		break;
 
 	default:
-		operand_immediate = instruction;
-		operand_dest = instruction >> 16 & 0b00011111;
-		operand_src1 = instruction >> 21 & 0b00011111;
+		operand.immediate = instruction;
+		operand.dest = instruction >> 16 & 0b00011111;
+		operand.src1 = instruction >> 21 & 0b00011111;
+		operand.instruction_format = instruction_format::immediate_format;
+		fprintf(stdout, "immediate format\n");
 		break;
-	}
+	} 
 
-	switch (opcode)
-	{
-	default:
-		fprintf(stderr, "unrecognised opcode\n");
-	}
+	// todo - don't forget to modify offset with jumps
+	pc += 4;
 }
 
 void Cpu::execute()
 {
-
+	// jump opcodes overlap the logical shift opcodes so
+	// we special case it
+	if (operand.instruction_format == instruction_format::jump_format)
+	{
+		switch (operand.func)
+		{
+		case opcode::op_j:
+			pc = (pc & 0xf0000000) | (operand.offset << 2);
+			fprintf(stdout, "op_j\n");
+			break;
+		case opcode::op_jal:
+			pc = (pc & 0xf0000000) | (operand.offset << 2);
+			registers.set(31, pc + 4);
+			fprintf(stdout, "op_jal\n");
+			break;
+		case opcode::op_jalr:
+			pc = operand.src1;
+			registers.set(31, pc + 4);
+			fprintf(stdout, "op_jalr\n");
+			break;
+		case opcode::op_jr:
+			pc = operand.src1;
+			fprintf(stdout, "op_jr\n");
+			break;
+		}
+	}
+	else
+	{
+		switch (operand.func)
+		{
+		case opcode::op_add:
+			break;
+		}
+	}
 }
 
 void Cpu::memAccess()
@@ -139,6 +176,11 @@ void Cpu::memAccess()
 }
 
 void Cpu::writeBack()
+{
+
+}
+
+void Cpu::add()
 {
 
 }
