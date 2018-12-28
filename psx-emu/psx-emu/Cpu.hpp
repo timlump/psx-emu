@@ -11,6 +11,9 @@
 // ref: https://cgi.cse.unsw.edu.au/~cs3231/doc/R3000.pdf
 // ref: http://www.cs.uwm.edu/classes/cs315/Bacon/Lecture/HTML/ch05s07.html
 // ref: http://www.mrc.uidaho.edu/mrc/people/jff/digital/MIPSir.html
+// ref: https://opencores.org/project/plasma/opcodes
+// ref: https://eclass.teicrete.gr/modules/document/file.php/TP286/%CE%92%CE%BF%CE%B7%CE%B8%CE%B7%CF%84%CE%B9%CE%BA%CE%AC%20%CE%B5%CE%B3%CF%87%CE%B5%CE%B9%CF%81%CE%AF%CE%B4%CE%B9%CE%B1/MIPS_Instruction_Coding_With_Hex.pdf 
+// ref: https://www.d.umn.edu/~gshute/mips/itype.xhtml   
 
 enum instruction_format : unsigned char {
 	register_format = 0x0, // 000000 (6) src1 (5) src2 (5) dest (5) shift (5) function (6)
@@ -22,24 +25,22 @@ enum instruction_format : unsigned char {
 class Cpu final
 {
 public:
-	void run();
+	void reset();
+	bool run();
 
 	Ram * ram = nullptr; 
 
 private:
 
-	unsigned int pc;
-	 
-	unsigned char b0;
-	unsigned char b1;
-	unsigned char b2;
-	unsigned char b3;
-
-	unsigned int r[NUM_REG];
+	unsigned int pc = BIOS_START;
+	unsigned int lo;
+	unsigned int hi;
+	unsigned int instruction;
+	instruction_format instruction_format;
 
 	struct
 	{
-		unsigned int r[NUM_REG];
+		unsigned int r[NUM_REG]; 
 		void set(int index, unsigned int value)
 		{
 			if (index != 0)
@@ -48,19 +49,6 @@ private:
 			}
 		}
 	} registers;
-
-	struct
-	{
-		unsigned char src1;
-		unsigned char src2;
-		unsigned char dest;
-		unsigned char shift;
-		unsigned char format;
-		unsigned char func;
-		unsigned short immediate;
-		unsigned int offset;
-		instruction_format instruction_format;
-	} operand;
 
 	// the 5 stages of the mips pipeline
 	void fetch();

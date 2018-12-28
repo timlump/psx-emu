@@ -3,22 +3,33 @@
 #include <stdio.h> 
 #include <string.h>
 
-Ram::Ram(const char * bios)
-{ 
-	memset(raw, 0, RAM_SIZE);
+enum MemSeg
+{
+	KUSEG = 0x0,
+	KSEG0 = 0x80000000,
+	KSEG1 = 0xA0000000,
+	KSEG2 = 0xC0000000
+};
 
-	FILE * file = fopen(bios, "rb");
+Ram::Ram(const char * bios_file)
+{ 
+	FILE * file = fopen(bios_file, "rb");
 
 	if (file)
 	{
 		unsigned int index = 0;
 		while (feof(file) == false)
 		{
-			raw[index] = fgetc(file);
+			unsigned char val = fgetc(file);
+			(*this)[BIOS_START+index] = val;
 			index++;
-		}
-		fprintf(stdout, "Loaded bios - pc end: %d \n", index-1);
-
+		} 
 		fclose(file);
 	}
+}
+
+unsigned char& Ram::operator[](unsigned int addr)
+{ 
+	addr &= 0x0fffffff;
+	return memory[addr];
 }

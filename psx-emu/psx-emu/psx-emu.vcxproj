@@ -116,6 +116,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Cpu.cpp" />
+    <ClCompile Include="DebugUtils.cpp" />
+    <ClCompile Include="DebugUtils.hpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Ram.cpp" />
   </ItemGroup>
