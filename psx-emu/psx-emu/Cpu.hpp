@@ -39,5 +39,10 @@ private:
 
 	// the mips processor has a 5 step pipeline but I am not attempted a low level emulation but rather a high level one
 	unsigned int fetch();
-	void decode_and_execute(unsigned int instruction);
+	void decode_and_execute(unsigned int instruction, bool advance_pc);
+
+	unsigned int register_execute(unsigned int instruction);
+	unsigned int jump_execute(unsigned int instruction);
+	unsigned int immediate_execute(unsigned int instruction);
+	unsigned int coprocessor_execute(unsigned int instruction);
 };
