@@ -1,8 +1,7 @@
 #pragma once
 
-#define NUM_REG 32
-
 #include "Ram.hpp"
+#include "RegisterFile.hpp"
 #include "DebugUtils.hpp"
 
 // ref: https://www.scss.tcd.ie/~jones/vivio/dlx/dlxtutorial.htm
@@ -28,34 +27,17 @@ class Cpu final
 public:
 	void reset();
 	bool run();
-	bool running() { return true; }
 
-	Ram * ram = nullptr; 
+	Ram * ram = nullptr;
+	RegisterFile * registers = nullptr;
 
 private:
 
 	unsigned int pc = BIOS_START;
 	unsigned int lo;
-	unsigned int hi;
-	unsigned int instruction;
-	instruction_format instruction_format;
+	unsigned int hi; 
 
-	struct
-	{
-		unsigned int r[NUM_REG]; 
-		void set(int index, unsigned int value)
-		{
-			if (index != 0)
-			{
-				r[index] = value; 
-			}
-		}
-	} registers;
-
-	// the 5 stages of the mips pipeline
-	void fetch();
-	void decode();
-	void execute();  
-	void mem_access();
-	void write_back();
+	// the mips processor has a 5 step pipeline but I am not attempted a low level emulation but rather a high level one
+	unsigned int fetch();
+	void decode_and_execute(unsigned int instruction);
 };

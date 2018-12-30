@@ -13,15 +13,21 @@ Ram::Ram(const char * bios_file)
 		while (feof(file) == false)
 		{
 			unsigned char val = fgetc(file);
-			(*this)[BIOS_START+index] = val;
+			set(BIOS_START+index,val);
 			index++;
 		} 
 		fclose(file);
 	}
 }
 
-unsigned char& Ram::operator[](unsigned int addr)
-{ 
+unsigned char Ram::get(unsigned int addr)
+{
 	addr &= 0x0fffffff;
-	return memory[addr];
+	return memory[addr]; 
+}
+
+void Ram::set(unsigned int addr, unsigned char val)
+{
+	addr &= 0x0fffffff;
+	memory[addr] = val;
 }

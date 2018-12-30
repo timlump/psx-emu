@@ -9,9 +9,14 @@ class Ram
 public:
 	Ram(const char * bios_file);
 
-	unsigned char& operator[](unsigned int addr);
+	unsigned char get(unsigned int addr);
+	void set(unsigned int addr, unsigned char val);
+	void write_back();
 
 private:
+
+
+
 	unsigned char memory[MEMORY_SIZE];
 	
 };

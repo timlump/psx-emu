@@ -30,12 +30,18 @@
     <ClCompile Include="DebugUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="RegisterFile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cpu.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Ram.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RegisterFile.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -120,10 +120,12 @@
     <ClCompile Include="DebugUtils.hpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Ram.cpp" />
+    <ClCompile Include="RegisterFile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cpu.hpp" />
     <ClInclude Include="Ram.hpp" />
+    <ClInclude Include="RegisterFile.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

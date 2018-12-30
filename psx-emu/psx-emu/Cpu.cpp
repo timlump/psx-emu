@@ -4,16 +4,23 @@
 #include <stdlib.h>
 
 enum opcode : unsigned char {
-	op_sll = 0b000000,
+	op_addiu = 0b001001, 
 	op_ori = 0b001101, 
 	op_lb =  0b100000,
-	op_beq = 0b000100,
 	op_lwl = 0b100010,
 	op_llo = 0b011000,
 	op_lui = 0b001111,
-	op_bnel = 0b010101,
+	op_sw = 0b0101011,
+	op_beq = 0b000100,
+	op_bne = 0b000101,
 	op_bgtz = 0b000111,
-	op_hlt = 0b111111
+	op_j = 0b000010   
+};
+
+enum funcs : unsigned char
+{
+	op_sll = 0b000000,
+	op_or = 0b100101 
 };
 
 void Cpu::reset()
@@ -21,47 +28,42 @@ void Cpu::reset()
 	pc = BIOS_START;
 	lo = rand();
 	hi = rand();
-
-	for (int i = 0; i < NUM_REG; i++)
-	{
-		registers.set(i, rand());
-	}
 }
 
 bool Cpu::run() 
 {
-	fetch();
-	decode();
- 	execute();
-	mem_access();
-	write_back();
+	decode_and_execute(fetch());
 
 	return true;
 }
 
-void Cpu::fetch()
+unsigned int Cpu::fetch()
 {
 	fprintf(stdout, "pc: %x\n", pc);
 
-	instruction = 0x0;
+	unsigned int instruction = 0x0;
 
-	instruction |= (*ram)[pc + 3];
+	instruction |= ram->get(pc + 3);
 	instruction <<= 8;
 
-	instruction |= (*ram)[pc + 2];
+	instruction |= ram->get(pc + 2);
 	instruction <<= 8;
 
-	instruction |= (*ram)[pc + 1];
+	instruction |= ram->get(pc + 1);
 	instruction <<= 8;
 
-	instruction |= (*ram)[pc];
+	instruction |= ram->get(pc);
 
 	DebugUtils::print_word_binary("instruction: ", instruction);
+
+	return instruction;
 }
 
-void Cpu::decode()
+void Cpu::decode_and_execute(unsigned int instruction)
 {
-	unsigned char op  = instruction >> 26;
+	unsigned char op = instruction >> 26;
+
+	instruction_format instruction_format = instruction_format::register_format;
 
 	if (op == 0x0)
 	{
@@ -69,7 +71,7 @@ void Cpu::decode()
 	}
 	else if (op >> 1 == 0x1)
 	{
-		instruction_format = instruction_format::jump_format; 
+		instruction_format = instruction_format::jump_format;
 	}
 	else if (op >> 2 == 0x4)
 	{
@@ -79,10 +81,7 @@ void Cpu::decode()
 	{
 		instruction_format = instruction_format::immediate_format;
 	}
-}
 
-void Cpu::execute()
-{
 	unsigned int pc_offset = 4;
 
 	// nop
@@ -103,7 +102,14 @@ void Cpu::execute()
 		DebugUtils::print_word_binary("target: ", target);
 
 		switch (op)
+		{ 
+		case opcode::op_j:
 		{
+			fprintf(stdout, "op_j\n");
+			pc_offset = 0;
+			pc = (pc & 0xf0000000) | (target << 2);
+		}
+		break;
 		default:
 			fprintf(stderr, "unknown opcode\n");
 			getchar();
@@ -127,12 +133,17 @@ void Cpu::execute()
 
 		switch (func)
 		{
-		case opcode::op_sll:
+		case funcs::op_sll:
 		{
 			fprintf(stdout, "op_sll\n");
-			registers.set(dst, registers.r[src2] << shift);
+			registers->set(dst, registers->get(src2) << shift);
 		}
 		break;
+		case funcs::op_or:
+		{  
+			registers->set(dst, registers->get(src1) | registers->get(src2));
+		}
+		break; 
 		default:
 			fprintf(stderr, "unknown func\n");
 			getchar();
@@ -161,9 +172,15 @@ void Cpu::execute()
 
 		switch (op)
 		{
+		case opcode::op_addiu:
+		{ 
+			fprintf(stdout, "op_addiu\n");
+			registers->set(dst, registers->get(src)+imm);
+		}
+		break;
 		case opcode::op_beq:
 			fprintf(stdout, "op_beq\n");
-			if (registers.r[src] == registers.r[dst])
+			if (registers->get(src) == registers->get(dst))
 			{
 				int val = (short)imm;
 				pc_offset = 0; 
@@ -173,7 +190,7 @@ void Cpu::execute()
 		case opcode::op_bgtz:
 		{
 			fprintf(stdout, "op_bgtz\n");
-			if (registers.r[src] > 0)
+			if (registers->get(src) > 0)
 			{
 				int val = (short)imm;
 				pc_offset = 0;
@@ -181,11 +198,10 @@ void Cpu::execute()
 			}
 		}
 		break;
-		// todo - apparently doesn't execute the next instruction (unless the branch doesn't happen)
-		case opcode::op_bnel:
+		case opcode::op_bne:
 		{
-			fprintf(stdout, "op_bnel\n");
-			if (registers.r[src] != registers.r[dst])
+			fprintf(stdout, "op_bne\n");
+			if (registers->get(src) != registers->get(dst))
 			{
 				int val = (short)imm;
 				pc_offset = 0;
@@ -196,49 +212,60 @@ void Cpu::execute()
 		case opcode::op_lui:
 		{
 			fprintf(stdout, "op_lui\n");
-			registers.set(dst, imm << 16);
+			registers->set(dst, imm << 16);
 		}
 		break;
 		case opcode::op_lb:
 		{
 			fprintf(stdout, "op_lb\n");
-			int addr = (short)imm + (int)registers.r[src];
-			unsigned char val = (*ram)[addr];
-			registers.set(dst, (int)val);
+			int addr = (short)imm + (int)registers->get(src);
+			unsigned char val = ram->get(addr);
+			registers->set(dst, (int)val);
 		}
 		break;
 		case opcode::op_lwl:
 		{
 			fprintf(stdout, "op_lwl\n");
-			int index = (short)imm + (int)registers.r[src];
+			int index = (short)imm + (int)registers->get(src);
 			unsigned int val = 0x0;
 
-			val |= (*ram)[index+3];
+			val |= ram->get(index+3);
 			val <<= 8;
 
-			val |= (*ram)[index+2];
+			val |= ram->get(index+2);
 			val <<= 8;
 
-			val |= (*ram)[index+1];
+			val |= ram->get(index+1);
 			val <<= 8;
 
-			val |= (*ram)[index];
+			val |= ram->get(index);
 
-			registers.set(dst, val);
+			registers->set(dst, val);
 		}
 		break;
 		case opcode::op_ori:
 		{
 			fprintf(stdout, "op_ori\n");
-			registers.set(dst, registers.r[src] | imm);
+			registers->set(dst, registers->get(src) | imm);
 		}
 		break;
 		case opcode::op_llo:
 		{
 			fprintf(stdout, "op_llo\n");
-			unsigned int val = registers.r[dst];
+			unsigned int val = registers->get(dst);
 			val &= 0xffff0000;
 			val |= imm;
+		}
+		break;
+		case opcode::op_sw:
+		{
+			fprintf(stdout, "op_sw\n");
+			int index = (registers->get(src) + (short)imm);
+			unsigned int val = registers->get(dst);
+			ram->set(index + 3, val >> 26);
+			ram->set(index + 2, val >> 16);
+			ram->set(index + 1, val >> 8);
+			ram->set(index, val);
 		}
 		break;
 		default:
@@ -248,14 +275,4 @@ void Cpu::execute()
 	}
 
 	pc += pc_offset;
-}
-
-void Cpu::mem_access()
-{
-
-}
-
-void Cpu::write_back()
-{
-
 }
