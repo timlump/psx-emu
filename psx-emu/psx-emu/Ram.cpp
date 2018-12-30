@@ -3,14 +3,6 @@
 #include <stdio.h> 
 #include <string.h>
 
-enum MemSeg
-{
-	KUSEG = 0x0,
-	KSEG0 = 0x80000000,
-	KSEG1 = 0xA0000000,
-	KSEG2 = 0xC0000000
-};
-
 Ram::Ram(const char * bios_file)
 { 
 	FILE * file = fopen(bios_file, "rb");

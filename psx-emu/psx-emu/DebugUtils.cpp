@@ -1,7 +1,6 @@
 #include "DebugUtils.hpp"
 #define _CRT_SECURE_NO_DEPRECATE 
 #include <stdio.h>
-#include "Cpu.hpp"
 
 void DebugUtils::print_word_binary(const char * message, unsigned int value)
 {
@@ -78,16 +77,4 @@ void DebugUtils::print_byte_binary(const char * message, unsigned char value)
 		value >> 1 & 0x1,
 		value & 0x1
 	);
-}
-
-void DebugUtils::print_mem_map(unsigned int addr)
-{
-	if (addr >= 0xc0000000)
-	{
-		fprintf(stdout, "kseg2\n");
-	}
-	else if (addr >= 0xa0000000)
-	{
-		fprintf(stdout, "kseg1\n");
-	}
 }

@@ -4,12 +4,15 @@
 #include <stdlib.h>
 
 enum opcode : unsigned char {
+	op_sll = 0b000000,
+	op_ori = 0b001101, 
 	op_lb =  0b100000,
 	op_beq = 0b000100,
 	op_lwl = 0b100010,
 	op_llo = 0b011000,
 	op_lui = 0b001111,
-	op_bnel = 0b010101,    
+	op_bnel = 0b010101,
+	op_bgtz = 0b000111,
 	op_hlt = 0b111111
 };
 
@@ -30,13 +33,8 @@ bool Cpu::run()
 	fetch();
 	decode();
  	execute();
-	memAccess();
-	writeBack();
-
-	if (getchar() == 'q')
-	{
-		return false;
-	}
+	mem_access();
+	write_back();
 
 	return true;
 }
@@ -44,20 +42,19 @@ bool Cpu::run()
 void Cpu::fetch()
 {
 	fprintf(stdout, "pc: %x\n", pc);
-	DebugUtils::print_mem_map(pc);
 
 	instruction = 0x0;
 
-	instruction |= (*ram)[pc];
-	instruction <<= 8;
-
-	instruction |= (*ram)[pc + 1];
+	instruction |= (*ram)[pc + 3];
 	instruction <<= 8;
 
 	instruction |= (*ram)[pc + 2];
 	instruction <<= 8;
 
-	instruction |= (*ram)[pc + 3];
+	instruction |= (*ram)[pc + 1];
+	instruction <<= 8;
+
+	instruction |= (*ram)[pc];
 
 	DebugUtils::print_word_binary("instruction: ", instruction);
 }
@@ -109,6 +106,7 @@ void Cpu::execute()
 		{
 		default:
 			fprintf(stderr, "unknown opcode\n");
+			getchar();
 			break;
 		}
 	}
@@ -129,14 +127,22 @@ void Cpu::execute()
 
 		switch (func)
 		{
+		case opcode::op_sll:
+		{
+			fprintf(stdout, "op_sll\n");
+			registers.set(dst, registers.r[src2] << shift);
+		}
+		break;
 		default:
 			fprintf(stderr, "unknown func\n");
+			getchar();
 			break;
 		}
 	}
 	else if (instruction_format == instruction_format::coprocessor_format)
 	{
 		fprintf(stdout, "coprocessor format\n");
+		getchar();
 	}
 	else if (instruction_format == instruction_format::immediate_format)
 	{
@@ -164,6 +170,29 @@ void Cpu::execute()
 				pc += val << 2; 
 			}
 		break;
+		case opcode::op_bgtz:
+		{
+			fprintf(stdout, "op_bgtz\n");
+			if (registers.r[src] > 0)
+			{
+				int val = (short)imm;
+				pc_offset = 0;
+				pc += val << 2;
+			}
+		}
+		break;
+		// todo - apparently doesn't execute the next instruction (unless the branch doesn't happen)
+		case opcode::op_bnel:
+		{
+			fprintf(stdout, "op_bnel\n");
+			if (registers.r[src] != registers.r[dst])
+			{
+				int val = (short)imm;
+				pc_offset = 0;
+				pc += val << 2;
+			}
+		}
+		break;
 		case opcode::op_lui:
 		{
 			fprintf(stdout, "op_lui\n");
@@ -184,18 +213,24 @@ void Cpu::execute()
 			int index = (short)imm + (int)registers.r[src];
 			unsigned int val = 0x0;
 
-			val |= (*ram)[index];
-			val <<= 8;
-
-			val |= (*ram)[index+1];
+			val |= (*ram)[index+3];
 			val <<= 8;
 
 			val |= (*ram)[index+2];
 			val <<= 8;
 
-			val |= (*ram)[index+3];
+			val |= (*ram)[index+1];
+			val <<= 8;
+
+			val |= (*ram)[index];
 
 			registers.set(dst, val);
+		}
+		break;
+		case opcode::op_ori:
+		{
+			fprintf(stdout, "op_ori\n");
+			registers.set(dst, registers.r[src] | imm);
 		}
 		break;
 		case opcode::op_llo:
@@ -208,23 +243,19 @@ void Cpu::execute()
 		break;
 		default:
 			fprintf(stderr, "unknown opcode\n");
+			getchar();
 		}
 	}
 
 	pc += pc_offset;
 }
 
-void Cpu::memAccess()
+void Cpu::mem_access()
 {
 
 }
 
-void Cpu::writeBack()
-{
-
-}
-
-void Cpu::add()
+void Cpu::write_back()
 {
 
 }

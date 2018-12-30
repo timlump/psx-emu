@@ -3,6 +3,7 @@
 #define NUM_REG 32
 
 #include "Ram.hpp"
+#include "DebugUtils.hpp"
 
 // ref: https://www.scss.tcd.ie/~jones/vivio/dlx/dlxtutorial.htm
 // ref: https://problemkaputt.de/psx-spx.htm
@@ -27,6 +28,7 @@ class Cpu final
 public:
 	void reset();
 	bool run();
+	bool running() { return true; }
 
 	Ram * ram = nullptr; 
 
@@ -53,10 +55,7 @@ private:
 	// the 5 stages of the mips pipeline
 	void fetch();
 	void decode();
-	void execute();
-	void memAccess();
-	void writeBack();
-
-	// operations
-	void add();
+	void execute();  
+	void mem_access();
+	void write_back();
 };

@@ -1,5 +1,4 @@
 #pragma once
-#include "DebugUtils.hpp"
 
 // ref: https://problemkaputt.de/psx-spx.htm#memorymap  
 #define MEMORY_SIZE 512*1024*1024
@@ -14,4 +13,5 @@ public:
 
 private:
 	unsigned char memory[MEMORY_SIZE];
+	
 };
