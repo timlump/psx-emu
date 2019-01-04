@@ -3,6 +3,8 @@
 // ref: https://problemkaputt.de/psx-spx.htm#memorymap  
 #define MEMORY_SIZE 512*1024*1024
 
+#include <map>
+
 class Ram
 {
 public:
@@ -13,6 +15,6 @@ public:
 
 private:
 
-	unsigned char memory[MEMORY_SIZE];
-	
+	std::map<unsigned int, unsigned char> memory;
+
 };
