@@ -115,6 +115,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Coprocessor0.cpp" />
     <ClCompile Include="Cpu.cpp" />
     <ClCompile Include="DebugUtils.cpp" />
     <ClCompile Include="DebugUtils.hpp" />
@@ -123,6 +124,7 @@
     <ClCompile Include="RegisterFile.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Coprocessor0.hpp" />
     <ClInclude Include="Cpu.hpp" />
     <ClInclude Include="Ram.hpp" />
     <ClInclude Include="RegisterFile.hpp" />
